@@ -11,7 +11,7 @@ function StructNode( src ) {
 
 	TempNode.call( this );
 
-	this.eval( src );
+	this.parse( src );
 
 }
 
@@ -49,13 +49,13 @@ StructNode.prototype.generate = function ( builder, output ) {
 
 	} else {
 
-		return builder.format( '( ' + src + ' )', this.getType( builder ), output );
+		return builder.format( '( ' + this.src + ' )', this.getType( builder ), output );
 
 	}
 
 };
 
-StructNode.prototype.eval = function ( src ) {
+StructNode.prototype.parse = function ( src ) {
 
 	this.src = src || '';
 

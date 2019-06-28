@@ -33,7 +33,7 @@ StandardNode.prototype.build = function ( builder ) {
 
 	if ( builder.isShader( 'vertex' ) ) {
 
-		var position = this.position ? this.position.parseAndBuildCode( builder, 'v3', { cache: 'position' } ) : undefined;
+		var position = this.position ? this.position.analyzeAndFlow( builder, 'v3', { cache: 'position' } ) : undefined;
 
 		builder.mergeUniform( THREE.UniformsUtils.merge( [
 
@@ -41,6 +41,15 @@ StandardNode.prototype.build = function ( builder ) {
 			THREE.UniformsLib.lights
 
 		] ) );
+
+		if ( THREE.UniformsLib.LTC_1 ) {
+
+			// add ltc data textures to material uniforms
+
+			builder.uniforms.ltc_1 = { value: undefined };
+			builder.uniforms.ltc_2 = { value: undefined };
+
+		}
 
 		builder.addParsCode( [
 			"varying vec3 vViewPosition;",
@@ -115,55 +124,59 @@ StandardNode.prototype.build = function ( builder ) {
 
 		var useClearCoat = ! builder.isDefined( 'STANDARD' );
 
-		// parse all nodes to reuse generate codes
+		// analyze all nodes to reuse generate codes
 
-		this.color.parse( builder, { slot: 'color', context: contextGammaOnly } );
-		this.roughness.parse( builder );
-		this.metalness.parse( builder );
+		if ( this.mask ) this.mask.analyze( builder );
 
-		if ( this.alpha ) this.alpha.parse( builder );
+		this.color.analyze( builder, { slot: 'color', context: contextGammaOnly } );
+		this.roughness.analyze( builder );
+		this.metalness.analyze( builder );
 
-		if ( this.normal ) this.normal.parse( builder );
+		if ( this.alpha ) this.alpha.analyze( builder );
 
-		if ( this.clearCoat ) this.clearCoat.parse( builder );
-		if ( this.clearCoatRoughness ) this.clearCoatRoughness.parse( builder );
+		if ( this.normal ) this.normal.analyze( builder );
 
-		if ( this.reflectivity ) this.reflectivity.parse( builder );
+		if ( this.clearCoat ) this.clearCoat.analyze( builder );
+		if ( this.clearCoatRoughness ) this.clearCoatRoughness.analyze( builder );
 
-		if ( this.light ) this.light.parse( builder, { cache: 'light' } );
+		if ( this.reflectivity ) this.reflectivity.analyze( builder );
 
-		if ( this.ao ) this.ao.parse( builder );
-		if ( this.ambient ) this.ambient.parse( builder );
-		if ( this.shadow ) this.shadow.parse( builder );
-		if ( this.emissive ) this.emissive.parse( builder, { slot: 'emissive' } );
+		if ( this.light ) this.light.analyze( builder, { cache: 'light' } );
 
-		if ( this.environment ) this.environment.parse( builder, { cache: 'env', context: contextEnvironment, slot: 'environment' } ); // isolate environment from others inputs ( see TextureNode, CubeTextureNode )
+		if ( this.ao ) this.ao.analyze( builder );
+		if ( this.ambient ) this.ambient.analyze( builder );
+		if ( this.shadow ) this.shadow.analyze( builder );
+		if ( this.emissive ) this.emissive.analyze( builder, { slot: 'emissive' } );
+
+		if ( this.environment ) this.environment.analyze( builder, { cache: 'env', context: contextEnvironment, slot: 'environment' } ); // isolate environment from others inputs ( see TextureNode, CubeTextureNode )
 
 		// build code
 
-		var color = this.color.buildCode( builder, 'c', { slot: 'color', context: contextGammaOnly } );
-		var roughness = this.roughness.buildCode( builder, 'f' );
-		var metalness = this.metalness.buildCode( builder, 'f' );
+		var mask = this.mask ? this.mask.flow( builder, 'b' ) : undefined;
 
-		var alpha = this.alpha ? this.alpha.buildCode( builder, 'f' ) : undefined;
+		var color = this.color.flow( builder, 'c', { slot: 'color', context: contextGammaOnly } );
+		var roughness = this.roughness.flow( builder, 'f' );
+		var metalness = this.metalness.flow( builder, 'f' );
 
-		var normal = this.normal ? this.normal.buildCode( builder, 'v3' ) : undefined;
+		var alpha = this.alpha ? this.alpha.flow( builder, 'f' ) : undefined;
 
-		var clearCoat = this.clearCoat ? this.clearCoat.buildCode( builder, 'f' ) : undefined;
-		var clearCoatRoughness = this.clearCoatRoughness ? this.clearCoatRoughness.buildCode( builder, 'f' ) : undefined;
+		var normal = this.normal ? this.normal.flow( builder, 'v3' ) : undefined;
 
-		var reflectivity = this.reflectivity ? this.reflectivity.buildCode( builder, 'f' ) : undefined;
+		var clearCoat = this.clearCoat ? this.clearCoat.flow( builder, 'f' ) : undefined;
+		var clearCoatRoughness = this.clearCoatRoughness ? this.clearCoatRoughness.flow( builder, 'f' ) : undefined;
 
-		var light = this.light ? this.light.buildCode( builder, 'v3', { cache: 'light' } ) : undefined;
+		var reflectivity = this.reflectivity ? this.reflectivity.flow( builder, 'f' ) : undefined;
 
-		var ao = this.ao ? this.ao.buildCode( builder, 'f' ) : undefined;
-		var ambient = this.ambient ? this.ambient.buildCode( builder, 'c' ) : undefined;
-		var shadow = this.shadow ? this.shadow.buildCode( builder, 'c' ) : undefined;
-		var emissive = this.emissive ? this.emissive.buildCode( builder, 'c', { slot: 'emissive' } ) : undefined;
+		var light = this.light ? this.light.flow( builder, 'v3', { cache: 'light' } ) : undefined;
 
-		var environment = this.environment ? this.environment.buildCode( builder, 'c', { cache: 'env', context: contextEnvironment, slot: 'environment' } ) : undefined;
+		var ao = this.ao ? this.ao.flow( builder, 'f' ) : undefined;
+		var ambient = this.ambient ? this.ambient.flow( builder, 'c' ) : undefined;
+		var shadow = this.shadow ? this.shadow.flow( builder, 'c' ) : undefined;
+		var emissive = this.emissive ? this.emissive.flow( builder, 'c', { slot: 'emissive' } ) : undefined;
 
-		var clearCoatEnv = useClearCoat && environment ? this.environment.buildCode( builder, 'c', { cache: 'clearCoat', context: contextEnvironment, slot: 'environment' } ) : undefined;
+		var environment = this.environment ? this.environment.flow( builder, 'c', { cache: 'env', context: contextEnvironment, slot: 'environment' } ) : undefined;
+
+		var clearCoatEnv = useClearCoat && environment ? this.environment.flow( builder, 'c', { cache: 'clearCoat', context: contextEnvironment, slot: 'environment' } ) : undefined;
 
 		builder.requires.transparent = alpha !== undefined;
 
@@ -183,8 +196,7 @@ StandardNode.prototype.build = function ( builder ) {
 			"#include <lights_pars_begin>",
 			"#include <lights_physical_pars_fragment>",
 			"#include <shadowmap_pars_fragment>",
-			"#include <logdepthbuf_pars_fragment>",
-			"#include <logdepthbuf_vertex>"
+			"#include <logdepthbuf_pars_fragment>"
 		].join( "\n" ) );
 
 		var output = [
@@ -195,8 +207,19 @@ StandardNode.prototype.build = function ( builder ) {
 
 			// add before: prevent undeclared material
 			"	PhysicalMaterial material;",
-			"	material.diffuseColor = vec3( 1.0 );",
+			"	material.diffuseColor = vec3( 1.0 );"
+		];
 
+		if ( mask ) {
+
+			output.push(
+				mask.code,
+				'if ( ! ' + mask.result + ' ) discard;'
+			);
+
+		}
+
+		output.push(
 			color.code,
 			"	vec3 diffuseColor = " + color.result + ";",
 			"	ReflectedLight reflectedLight = ReflectedLight( vec3( 0.0 ), vec3( 0.0 ), vec3( 0.0 ), vec3( 0.0 ) );",
@@ -208,7 +231,7 @@ StandardNode.prototype.build = function ( builder ) {
 
 			metalness.code,
 			"	float metalnessFactor = " + metalness.result + ";"
-		];
+		);
 
 		if ( alpha ) {
 
@@ -216,7 +239,7 @@ StandardNode.prototype.build = function ( builder ) {
 				alpha.code,
 				'#ifdef ALPHATEST',
 
-				'if ( ' + alpha.result + ' <= ALPHATEST ) discard;',
+				'	if ( ' + alpha.result + ' <= ALPHATEST ) discard;',
 
 				'#endif'
 			);
@@ -356,6 +379,12 @@ StandardNode.prototype.build = function ( builder ) {
 
 			output.push( "radiance += " + environment.result + ";" );
 
+			if ( environment.extra.irradiance ) {
+
+				output.push( "irradiance += PI * " + environment.extra.irradiance + ";" );
+
+			}
+
 		}
 
 		output.push(
@@ -404,6 +433,8 @@ StandardNode.prototype.copy = function ( source ) {
 	this.roughness = source.roughness;
 	this.metalness = source.metalness;
 
+	if ( source.mask ) this.mask = source.mask;
+
 	if ( source.alpha ) this.alpha = source.alpha;
 
 	if ( source.normal ) this.normal = source.normal;
@@ -442,6 +473,8 @@ StandardNode.prototype.toJSON = function ( meta ) {
 		data.color = this.color.toJSON( meta ).uuid;
 		data.roughness = this.roughness.toJSON( meta ).uuid;
 		data.metalness = this.metalness.toJSON( meta ).uuid;
+
+		if ( this.mask ) data.mask = this.mask.toJSON( meta ).uuid;
 
 		if ( this.alpha ) data.alpha = this.alpha.toJSON( meta ).uuid;
 

@@ -20,6 +20,7 @@ import {
 
 	// inputs
 
+	BoolNode,
 	IntNode,
 	FloatNode,
 	Vector2Node,
@@ -49,9 +50,7 @@ import {
 
 	// math
 
-	Math1Node,
-	Math2Node,
-	Math3Node,
+	MathNode,
 	OperatorNode,
 	CondNode,
 
@@ -132,6 +131,7 @@ THREE.NodeBuilder = NodeBuilder;
 
 // inputs
 
+THREE.BoolNode = BoolNode;
 THREE.IntNode = IntNode;
 THREE.FloatNode = FloatNode;
 THREE.Vector2Node = Vector2Node;
@@ -161,9 +161,7 @@ THREE.ResolutionNode = ResolutionNode;
 
 // math
 
-THREE.Math1Node = Math1Node;
-THREE.Math2Node = Math2Node;
-THREE.Math3Node = Math3Node;
+THREE.MathNode = MathNode;
 THREE.OperatorNode = OperatorNode;
 THREE.CondNode = CondNode;
 

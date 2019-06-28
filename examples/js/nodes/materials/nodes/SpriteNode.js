@@ -29,7 +29,7 @@ SpriteNode.prototype.build = function ( builder ) {
 
 	if ( builder.isShader( 'vertex' ) ) {
 
-		var position = this.position ? this.position.parseAndBuildCode( builder, 'v3', { cache: 'position' } ) : undefined;
+		var position = this.position ? this.position.analyzeAndFlow( builder, 'v3', { cache: 'position' } ) : undefined;
 
 		builder.mergeUniform( THREE.UniformsUtils.merge( [
 			THREE.UniformsLib.fog
@@ -121,20 +121,33 @@ SpriteNode.prototype.build = function ( builder ) {
 			"#include <logdepthbuf_fragment>"
 		].join( "\n" ) );
 
-		// parse all nodes to reuse generate codes
+		// analyze all nodes to reuse generate codes
 
-		if ( this.alpha ) this.alpha.parse( builder );
+		if ( this.mask ) this.mask.analyze( builder );
 
-		this.color.parse( builder, { slot: 'color' } );
+		if ( this.alpha ) this.alpha.analyze( builder );
+
+		this.color.analyze( builder, { slot: 'color' } );
 
 		// build code
 
-		var alpha = this.alpha ? this.alpha.buildCode( builder, 'f' ) : undefined,
-			color = this.color.buildCode( builder, 'c', { slot: 'color' } );
+		var mask = this.mask ? this.mask.flow( builder, 'b' ) : undefined,
+			alpha = this.alpha ? this.alpha.flow( builder, 'f' ) : undefined,
+			color = this.color.flow( builder, 'c', { slot: 'color' } ),
+			output = [];
+
+		if ( mask ) {
+
+			output.push(
+				mask.code,
+				'if ( ! ' + mask.result + ' ) discard;'
+			);
+
+		}
 
 		if ( alpha ) {
 
-			output = [
+			output.push(
 				alpha.code,
 				'#ifdef ALPHATEST',
 
@@ -143,14 +156,14 @@ SpriteNode.prototype.build = function ( builder ) {
 				'#endif',
 				color.code,
 				"gl_FragColor = vec4( " + color.result + ", " + alpha.result + " );"
-			];
+			);
 
 		} else {
 
-			output = [
+			output.push(
 				color.code,
 				"gl_FragColor = vec4( " + color.result + ", 1.0 );"
-			];
+			);
 
 		}
 
@@ -180,6 +193,8 @@ SpriteNode.prototype.copy = function ( source ) {
 
 	if ( source.spherical !== undefined ) this.spherical = source.spherical;
 
+	if ( source.mask ) this.mask = source.mask;
+
 	if ( source.alpha ) this.alpha = source.alpha;
 
 };
@@ -201,6 +216,8 @@ SpriteNode.prototype.toJSON = function ( meta ) {
 		data.color = this.color.toJSON( meta ).uuid;
 
 		if ( this.spherical === false ) data.spherical = false;
+
+		if ( this.mask ) data.mask = this.mask.toJSON( meta ).uuid;
 
 		if ( this.alpha ) data.alpha = this.alpha.toJSON( meta ).uuid;
 

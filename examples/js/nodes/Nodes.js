@@ -20,6 +20,7 @@ export { NodeBuilder } from './core/NodeBuilder.js';
 
 // inputs
 
+export { BoolNode } from './inputs/BoolNode.js';
 export { IntNode } from './inputs/IntNode.js';
 export { FloatNode } from './inputs/FloatNode.js';
 export { Vector2Node } from './inputs/Vector2Node.js';
@@ -49,9 +50,7 @@ export { ResolutionNode } from './accessors/ResolutionNode.js';
 
 // math
 
-export { Math1Node } from './math/Math1Node.js';
-export { Math2Node } from './math/Math2Node.js';
-export { Math3Node } from './math/Math3Node.js';
+export { MathNode } from './math/MathNode.js';
 export { OperatorNode } from './math/OperatorNode.js';
 export { CondNode } from './math/CondNode.js';
 
