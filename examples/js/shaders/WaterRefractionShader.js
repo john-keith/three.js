@@ -19,8 +19,8 @@
 			}
 		},
 		vertexShader:
-	/* glsl */
-	`
+  /* glsl */
+  `
 
 		uniform mat4 textureMatrix;
 
@@ -37,8 +37,8 @@
 
 		}`,
 		fragmentShader:
-	/* glsl */
-	`
+  /* glsl */
+  `
 
 		uniform vec3 color;
 		uniform float time;
@@ -62,7 +62,7 @@
 
 		void main() {
 
-		 float waveStrength = 0.1;
+		 float waveStrength = 0.5;
 		 float waveSpeed = 0.03;
 
 			// simple distortion (ripple) via dudv map (see https://www.youtube.com/watch?v=6B7IF6GOu7s)
